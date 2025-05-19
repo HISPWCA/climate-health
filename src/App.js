@@ -4,7 +4,7 @@ import { useConfig } from "@dhis2/app-runtime";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useState } from "react";
-import { DatePicker, Select, Spin, Row, Col, Modal } from "antd";
+import { DatePicker, Select, Spin, Row, Col, Modal, message } from "antd";
 
 import ChartBuilder from "./ChartBuilder";
 import { uniqByProp } from "./utils/uniqByProp";
@@ -17,6 +17,7 @@ import { IoSettings } from "react-icons/io5";
 
 import "./output.css";
 import { injectDataToTarget } from "./utils/injectDataToTarget";
+import DHIS2DataModal from "./components/DHIS2DataModal";
 
 // const precipitation_DataElement = "Rl85S6SUvUz";
 // const target_DataElement = "ERg2DkAF3ka";
@@ -27,6 +28,7 @@ const App = () => {
   const { baseUrl } = useConfig();
 
   const [loading, setLoading] = useState(false);
+  const [loadingProcessing, setLoadingProcessing] = useState(false);
 
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedLevels, setSelectedLevels] = useState("");
@@ -47,12 +49,11 @@ const App = () => {
     axios
       .get(`${baseUrl}/api/dataStore/climate_health/settings`)
       .then((response) => {
-        console.log("response : ", response.data);
         setPrecipitation_DataElement(response.data?.indicator);
-        setTarget_DataElement(response.data?.datElement);
+        setTarget_DataElement(response.data?.dataElement);
       })
       .catch((error) => {
-        console.log(error.message);
+        message.error(error.message);
       });
   };
 
@@ -65,7 +66,7 @@ const App = () => {
       .catch((error) => {
         setIndicators([]);
 
-        console.log(error.message);
+        message.error(error.message);
       });
   };
 
@@ -80,7 +81,7 @@ const App = () => {
       .catch((error) => {
         setDataElements([]);
 
-        console.log(error.message);
+        message.error(error.message);
       });
   };
 
@@ -93,7 +94,7 @@ const App = () => {
       .catch((error) => {
         setLevels([]);
 
-        console.log(error.message);
+        message.error(error.message);
       });
   };
 
@@ -106,7 +107,7 @@ const App = () => {
       .catch((error) => {
         setOrganisationUnits([]);
 
-        console.log(error.message);
+        message.error(error.message);
       });
   };
 
@@ -132,12 +133,12 @@ const App = () => {
       function getMoisDeAnnee(annee) {
         const mois = [];
         for (let i = 1; i <= 12; i++) {
-            // Formatage du mois sur 2 chiffres (01, 02, ..., 12)
-            const moisFormate = i.toString().padStart(2, '0');
-            mois.push(`${annee}${moisFormate}`);
+          // Formatage du mois sur 2 chiffres (01, 02, ..., 12)
+          const moisFormate = i.toString().padStart(2, "0");
+          mois.push(`${annee}${moisFormate}`);
         }
         return mois;
-    }
+      }
       for (const currentTranche of keys) {
         const trancheActuelle = peaks_tranches[currentTranche];
         const trancheMonths = peaks_tranches[currentTranche][0];
@@ -146,11 +147,13 @@ const App = () => {
         const monthsList = listMonths(givenMonth, 11);
 
         const generatedPeriods = monthsList.join(";");
-        const inputDataElement = 'Rl85S6SUvUz'
+        const inputDataElement = "Rl85S6SUvUz";
         // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${selectedLevels.map(selectedLevel => `LEVEL-${selectedLevel}`).join(';')}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`
         // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
         // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${inputDataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${getMoisDeAnnee(selectedYear)?.join(';')||''}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
-        const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${getMoisDeAnnee(selectedYear)?.join(';')||''}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
+        const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${
+          getMoisDeAnnee(selectedYear)?.join(";") || ""
+        }&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
         const casesDataResponse = await axios.get(url);
 
         const ou_ids = [
@@ -198,16 +201,11 @@ const App = () => {
             }, 0);
           const pourcentage_tranche = calculerPourcentage(total_tranche, total);
 
-          if (id === 'eqkx5pULvwl' && pourcentage_tranche >= 60) {
-            console.log('le ou est ', id)
-            console.log('le ou est ', organisationUnits.find((ou) => ou.id === id))
-            console.log('le total est ', total)
-            console.log('le total_tranche est ', total_tranche)
-            console.log('le pourcentage_tranche est ', pourcentage_tranche)
-
-            const totalValues = casesDataResponse.data.dataValues
-              .filter((dataValue) => dataValue.orgUnit === id)
-            console.log('totoal values is then this ', totalValues)
+          if (id === "eqkx5pULvwl" && pourcentage_tranche >= 60) {
+            const totalValues = casesDataResponse.data.dataValues.filter(
+              (dataValue) => dataValue.orgUnit === id
+            );
+            console.log("totoal values is then this ", totalValues);
           }
 
           peaks_ou_value[
@@ -241,7 +239,6 @@ const App = () => {
             arrayData.push(tmpPeakData[v]);
           }
 
-
           return {
             ...tmpPeakData,
             consecutivePeaks: consecutivePeaks(arrayData),
@@ -268,7 +265,7 @@ const App = () => {
       setLoading(false);
       setPeaksData([]);
 
-      console.log(error.message);
+      message.error(error.message);
     }
   };
 
@@ -276,61 +273,74 @@ const App = () => {
     setOpenModal(true);
   };
 
-  const handleModalOK = () => {
-    axios
-      .put(`${baseUrl}/api/dataStore/climate_health/settings`, {
-        indicator: precipitation_DataElement,
-        dataElement: target_DataElement,
-      })
-      .then((response) => {
-        console.log("response : ", response.data);
-        setOpenModal(false);
-      })
-      .catch((error) => {
-        console.log(error.message);
-        setOpenModal(false);
-      });
+  const handleMetaDataSelected = async (selectedMetaData) => {
+    try {
+      setLoadingProcessing(true);
+
+      if (!selectedMetaData || selectedMetaData?.length > 2) {
+        throw new Error(
+          "You can only select 2 metadata ( indicator and data Element ) "
+        );
+      }
+
+      const ind = selectedMetaData.find((i) => i.type === "INDICATOR");
+      const dataEl = selectedMetaData.find((i) => i.type === "DATA_ELEMENT");
+
+      if (!ind || !dataEl) {
+        throw new Error(
+          "You can only select 2 metadata ( indicator and data Element ) "
+        );
+      }
+
+      axios
+        .put(`${baseUrl}/api/dataStore/climate_health/settings`, {
+          indicator: ind.id,
+          dataElement: dataEl.id,
+        })
+        .then((_) => {
+          message.success("Success Update");
+          setPrecipitation_DataElement(ind.id);
+          setTarget_DataElement(dataEl.id);
+          setOpenModal(false);
+          setLoadingProcessing(false);
+        })
+        .catch((error) => {
+          alert(error.message || "Error");
+          setLoadingProcessing(false);
+        });
+    } catch (err) {
+      message.error(err.message, 5);
+      setLoadingProcessing(false);
+    }
   };
 
-  const RenderSettingsModal = () => (
-    <Modal
-      title="Basic Modal"
-      open={openModal}
-      onOk={handleModalOK}
-      onCancel={() => setOpenModal(false)}
-    >
-      <div className="flex justify-between ">
-        <div>Select indicator</div>
-        <div>
-          <Select
-            showSearch
-            style={{ minWidth: "300px" }}
-            options={indicators.map((ind) => ({
-              value: ind.id,
-              label: ind.displayName,
-            }))}
-            value={precipitation_DataElement}
-            onChange={(value) => setPrecipitation_DataElement(value)}
-          />
-        </div>
-      </div>
-      <div className="flex justify-between ">
-        <div>Select data element</div>
-        <div>
-          <Select
-            showSearch
-            style={{ minWidth: "300px" }}
-            options={dataElements.map((ind) => ({
-              value: ind.id,
-              label: ind.displayName,
-            }))}
-            value={target_DataElement}
-            onChange={(value) => setTarget_DataElement(value)}
-          />
-        </div>
-      </div>
-    </Modal>
-  );
+  const initValues = () => {
+    const newList = [];
+
+    const foundPrecipitation_DataElement = indicators?.find(
+      (i) => i.id === precipitation_DataElement
+    );
+
+    const foundTarget_DataElement = dataElements?.find(
+      (i) => i.id === target_DataElement
+    );
+
+    if (precipitation_DataElement && foundPrecipitation_DataElement) {
+      newList.push({
+        id: foundPrecipitation_DataElement.id,
+        name: foundPrecipitation_DataElement.displayName,
+      });
+    }
+
+    if (target_DataElement && foundTarget_DataElement) {
+      newList.push({
+        id: foundTarget_DataElement.id,
+        name: foundTarget_DataElement.displayName,
+      });
+    }
+
+    return newList;
+  };
 
   useEffect(() => {
     setPeaksData([]);
@@ -386,7 +396,6 @@ const App = () => {
               onClick={handleOpenSettings}
               className="cursor-pointer "
             />
-            {RenderSettingsModal()}
           </div>
         </div>
 
@@ -427,16 +436,25 @@ const App = () => {
                     Consecutive Peaks: {ouD?.consecutivePeaks?.longestPeak ?? 0}
                     {Object.keys(ouD?.consecutivePeaks?.peakLengths).length >
                       0 && (
-                        <ObjectToTable
-                          data={ouD?.consecutivePeaks?.peakLengths}
-                        />
-                      )}
+                      <ObjectToTable
+                        data={ouD?.consecutivePeaks?.peakLengths}
+                      />
+                    )}
                   </div>
                 </Col>
               ))}
             </Row>
           </div>
         )}
+
+        <DHIS2DataModal
+          loadingProcessing={loadingProcessing}
+          initValues={initValues()}
+          handleOk={handleMetaDataSelected}
+          open={openModal}
+          setOpen={setOpenModal}
+          numberOfSelection={2}
+        />
       </div>
     </Spin>
   );
