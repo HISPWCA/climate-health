@@ -19,8 +19,8 @@ import "./output.css";
 import { injectDataToTarget } from "./utils/injectDataToTarget";
 import DHIS2DataModal from "./components/DHIS2DataModal";
 
-// const precipitation_DataElement = "Rl85S6SUvUz";
-// const target_DataElement = "ERg2DkAF3ka";
+// const source = "Rl85S6SUvUz";
+// const destination = "ERg2DkAF3ka";
 
 const uniqueById = uniqByProp("ouId");
 
@@ -41,16 +41,15 @@ const App = () => {
   const [indicators, setIndicators] = useState([]);
   const [dataElements, setDataElements] = useState([]);
 
-  const [precipitation_DataElement, setPrecipitation_DataElement] =
-    useState(null);
-  const [target_DataElement, setTarget_DataElement] = useState(null);
+  const [source, setSource] = useState(null);
+  const [destination, setDestination] = useState(null);
 
   const loadSettings = () => {
     axios
       .get(`${baseUrl}/api/dataStore/climate_health/settings`)
       .then((response) => {
-        setPrecipitation_DataElement(response.data?.indicator);
-        setTarget_DataElement(response.data?.dataElement);
+        setSource(response.data?.source);
+        setDestination(response.data?.destination);
       })
       .catch((error) => {
         message.error(error.message);
@@ -148,10 +147,12 @@ const App = () => {
 
         const generatedPeriods = monthsList.join(";");
         const inputDataElement = "Rl85S6SUvUz";
-        // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${selectedLevels.map(selectedLevel => `LEVEL-${selectedLevel}`).join(';')}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`
-        // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
+        // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${source}&dimension=ou:${selectedLevels.map(selectedLevel => `LEVEL-${selectedLevel}`).join(';')}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`
+        // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${source}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${generatedPeriods}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
         // const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${inputDataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${getMoisDeAnnee(selectedYear)?.join(';')||''}&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
-        const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${precipitation_DataElement}&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${
+        const url = `${baseUrl}/api/analytics/dataValueSet.json?dimension=dx:${
+          source?.id
+        }&dimension=ou:${`LEVEL-${selectedLevels}`}&dimension=pe:${
           getMoisDeAnnee(selectedYear)?.join(";") || ""
         }&showHierarchy=false&hierarchyMeta=false&includeMetadataDetails=true&includeNumDen=true&skipRounding=false&completedOnly=false`;
         const casesDataResponse = await axios.get(url);
@@ -254,7 +255,7 @@ const App = () => {
           value: d?.consecutivePeaks?.longestPeak,
           orgUnit: d?.ouId,
           period: selectedYear,
-          dataElement: target_DataElement,
+          dataElement: destination?.id,
         }))
         .filter((d) => d.value > 0);
 
@@ -273,73 +274,25 @@ const App = () => {
     setOpenModal(true);
   };
 
-  const handleMetaDataSelected = async (selectedMetaData) => {
+  const handleMetaDataSelected = async () => {
     try {
+      if (!source) return null;
+
       setLoadingProcessing(true);
 
-      if (!selectedMetaData || selectedMetaData?.length > 2) {
-        throw new Error(
-          "You can only select 2 metadata ( indicator and data Element ) "
-        );
-      }
+      await axios.put(`${baseUrl}/api/dataStore/climate_health/settings`, {
+        source,
+        destination: destination,
+      });
 
-      const ind = selectedMetaData.find((i) => i.type === "INDICATOR");
-      const dataEl = selectedMetaData.find((i) => i.type === "DATA_ELEMENT");
+      message.success("Success Update");
 
-      if (!ind || !dataEl) {
-        throw new Error(
-          "You can only select 2 metadata ( indicator and data Element ) "
-        );
-      }
-
-      axios
-        .put(`${baseUrl}/api/dataStore/climate_health/settings`, {
-          indicator: ind.id,
-          dataElement: dataEl.id,
-        })
-        .then((_) => {
-          message.success("Success Update");
-          setPrecipitation_DataElement(ind.id);
-          setTarget_DataElement(dataEl.id);
-          setOpenModal(false);
-          setLoadingProcessing(false);
-        })
-        .catch((error) => {
-          alert(error.message || "Error");
-          setLoadingProcessing(false);
-        });
+      setOpenModal(false);
+      setLoadingProcessing(false);
     } catch (err) {
       message.error(err.message, 5);
       setLoadingProcessing(false);
     }
-  };
-
-  const initValues = () => {
-    const newList = [];
-
-    const foundPrecipitation_DataElement = indicators?.find(
-      (i) => i.id === precipitation_DataElement
-    );
-
-    const foundTarget_DataElement = dataElements?.find(
-      (i) => i.id === target_DataElement
-    );
-
-    if (precipitation_DataElement && foundPrecipitation_DataElement) {
-      newList.push({
-        id: foundPrecipitation_DataElement.id,
-        name: foundPrecipitation_DataElement.displayName,
-      });
-    }
-
-    if (target_DataElement && foundTarget_DataElement) {
-      newList.push({
-        id: foundTarget_DataElement.id,
-        name: foundTarget_DataElement.displayName,
-      });
-    }
-
-    return newList;
   };
 
   useEffect(() => {
@@ -449,11 +402,13 @@ const App = () => {
 
         <DHIS2DataModal
           loadingProcessing={loadingProcessing}
-          initValues={initValues()}
           handleOk={handleMetaDataSelected}
           open={openModal}
           setOpen={setOpenModal}
-          numberOfSelection={2}
+          destination={destination}
+          setDestination={setDestination}
+          source={source}
+          setSource={setSource}
         />
       </div>
     </Spin>

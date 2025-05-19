@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   ButtonStrip,
@@ -14,12 +14,14 @@ const DHIS2DataModal = ({
   open,
   setOpen,
   onClose,
-  initValues,
+  loadingProcessing,
   title,
   okText,
   handleOk,
-  loadingProcessing,
-  numberOfSelection,
+  setSource,
+  setDestination,
+  source,
+  destination,
 }) => {
   const [selectedMetaData, setSelectedMetaData] = useState([]);
 
@@ -33,12 +35,6 @@ const DHIS2DataModal = ({
     handleOk && handleOk(selectedMetaData);
   };
 
-  useEffect(() => {
-    if (initValues?.length > 0) {
-      setSelectedMetaData(initValues);
-    }
-  }, [initValues]);
-
   return open ? (
     <Modal onClose={handleClose} fluid>
       <ModalTitle>
@@ -51,41 +47,44 @@ const DHIS2DataModal = ({
           style={{
             padding: "20px",
             border: "1px solid #ccc",
-            display: "flex",
-            width: "600px",
-            gap: "5px",
           }}
         >
-          <div>
-            <DataDimension
-              selectedDimensions={selectedMetaData}
-              onSelect={(value) => {
-                if (numberOfSelection) {
-                  if (value.items.length <= parseInt(numberOfSelection)) {
-                    setSelectedMetaData(value.items || []);
+          <div style={{ width: "100%" }}>
+            <div>
+              <span style={{ fontWeight: "bold" }}>Meta data Source</span>
+            </div>
+            <div style={{ marginTop: "10px" }}>
+              <DataDimension
+                selectedDimensions={source ? [source] : []}
+                onSelect={(value) => {
+                  if (value.items.length <= 1) {
+                    setSource(value.items[0]);
                   }
-                } else {
-                  setSelectedMetaData(value.items || []);
-                }
-              }}
-              displayNameProp="name"
-            />
+                }}
+                displayNameProp="name"
+              />
+            </div>
           </div>
-          <div >
-            <DataDimension
-              selectedDimensions={selectedMetaData}
-              onSelect={(value) => {
-                if (numberOfSelection) {
-                  if (value.items.length <= parseInt(numberOfSelection)) {
-                    setSelectedMetaData(value.items || []);
-                  }
-                } else {
-                  setSelectedMetaData(value.items || []);
-                }
-              }}
-              displayNameProp="name"
-            />
-          </div>
+          {source && (
+            <div style={{ width: "100%", marginTop: "30px" }}>
+              <div>
+                <span style={{ fontWeight: "bold" }}>
+                  Meta data Destination
+                </span>
+              </div>
+              <div style={{ marginTop: "10px" }}>
+                <DataDimension
+                  selectedDimensions={destination ? [destination] : []}
+                  onSelect={(value) => {
+                    if (value.items.length <= 1) {
+                      setDestination(value.items[0]);
+                    }
+                  }}
+                  displayNameProp="name"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </ModalContent>
       <ModalActions>
@@ -93,7 +92,7 @@ const DHIS2DataModal = ({
           <Button
             loading={loadingProcessing || false}
             primary
-            disabled={selectedMetaData.length === 0 ? true : false}
+            disabled={source || destination ? false : true}
             onClick={handleSave}
             icon={<FiSave style={{ fontSize: "18px" }} />}
           >
