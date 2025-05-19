@@ -40,27 +40,52 @@ const DHIS2DataModal = ({
   }, [initValues]);
 
   return open ? (
-    <Modal onClose={handleClose} large>
+    <Modal onClose={handleClose} fluid>
       <ModalTitle>
         <div style={{ fontWeight: "bold", fontSize: "16px" }}>
-          {title ? title : "Méta données"}
+          {title ? title : "Configuration des Méta données"}
         </div>
       </ModalTitle>
       <ModalContent>
-        <div style={{ padding: "20px", border: "1px solid #ccc" }}>
-          <DataDimension
-            selectedDimensions={selectedMetaData}
-            onSelect={(value) => {
-              if (numberOfSelection) {
-                if (value.items.length <= parseInt(numberOfSelection)) {
+        <div
+          style={{
+            padding: "20px",
+            border: "1px solid #ccc",
+            display: "flex",
+            width: "600px",
+            gap: "5px",
+          }}
+        >
+          <div>
+            <DataDimension
+              selectedDimensions={selectedMetaData}
+              onSelect={(value) => {
+                if (numberOfSelection) {
+                  if (value.items.length <= parseInt(numberOfSelection)) {
+                    setSelectedMetaData(value.items || []);
+                  }
+                } else {
                   setSelectedMetaData(value.items || []);
                 }
-              } else {
-                setSelectedMetaData(value.items || []);
-              }
-            }}
-            displayNameProp="name"
-          />
+              }}
+              displayNameProp="name"
+            />
+          </div>
+          <div >
+            <DataDimension
+              selectedDimensions={selectedMetaData}
+              onSelect={(value) => {
+                if (numberOfSelection) {
+                  if (value.items.length <= parseInt(numberOfSelection)) {
+                    setSelectedMetaData(value.items || []);
+                  }
+                } else {
+                  setSelectedMetaData(value.items || []);
+                }
+              }}
+              displayNameProp="name"
+            />
+          </div>
         </div>
       </ModalContent>
       <ModalActions>
