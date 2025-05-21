@@ -1,9 +1,9 @@
 const config = {
-    type: 'app',
+  type: "app",
 
-    entryPoints: {
-        app: './src/App.js',
-    },
-}
+  entryPoints: {
+    app: "./src/AppWrapper.js",
+  },
+};
 
 module.exports = config
